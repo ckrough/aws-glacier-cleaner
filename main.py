@@ -1,5 +1,5 @@
 # main.py
-from app.glacier_vaults_list import list_glacier_vaults
+from app.list_vaults import list_vaults
 from app.list_archives import list_archives
 from app.delete_archives import delete_archive
 from app.delete_vault import delete_vault
@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO,
 
 def main():
     print("Retrieving list of AWS Glacier Vaults...")
-    vault_names = list_glacier_vaults()
+    vault_names = list_vaults()
 
     print("Discovered Glacier Vaults:")
     for vault_name in vault_names:

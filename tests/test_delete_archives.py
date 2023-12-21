@@ -7,30 +7,23 @@ from app.delete_archives import delete_archive
 class TestDeleteArchives(unittest.TestCase):
 
     @patch('app.delete_archives.logging.getLogger')
-    @patch('app.delete_archives.CredentialManager')
-    @patch('app.delete_archives.boto3.client')
-    def test_delete_archive(
-        self, mock_boto_client, mock_credential_manager, mock_logger
-    ):
-        # Mock logging
+    @patch('app.delete_archives.CredentialManager.get_glacier_client')
+    def test_delete_archive(self, mock_get_glacier_client, mock_logger):
         mock_logger.return_value = MagicMock()
 
-        # Set up mock credentials
-        mock_credentials = {
-            'AccessKeyId': 'mock_key_id',
-            'SecretAccessKey': 'mock_access_key',
-            'SessionToken': 'mock_token'
-        }
-        mock_credential_manager.return_value.get_credentials.return_value = \
-            mock_credentials
-
-        # Mock Glacier client behavior
+        # Mock Glacier client
         mock_glacier_client = MagicMock()
-        mock_boto_client.return_value = mock_glacier_client
+        mock_get_glacier_client.return_value = mock_glacier_client
 
+        # Call the function
         delete_archive('test_vault', 'test_archive_id')
+
+        # Assert the delete_archive call
         mock_glacier_client.delete_archive.assert_called_with(
-            accountId='-', vaultName='test_vault', archiveId='test_archive_id')
+            accountId='-',
+            vaultName='test_vault',
+            archiveId='test_archive_id'
+        )
 
 
 if __name__ == '__main__':

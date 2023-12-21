@@ -1,5 +1,4 @@
 # app/list_archives.py
-import boto3
 import time
 import json
 import logging
@@ -24,17 +23,8 @@ def list_archives(vault_name: str) -> List[str]:
     logger = logging.getLogger(__name__)
     credential_manager = CredentialManager()
 
-    def get_glacier_client():
-        """Fetches fresh credentials and returns a Glacier client."""
-        credentials = credential_manager.get_credentials()
-        return boto3.client(
-            'glacier',
-            aws_access_key_id=credentials['AccessKeyId'],
-            aws_secret_access_key=credentials['SecretAccessKey'],
-            aws_session_token=credentials['SessionToken']
-        )
+    glacier_client = credential_manager.get_glacier_client()
 
-    glacier_client = get_glacier_client()
     try:
         job_response = glacier_client.initiate_job(
             accountId='-',
@@ -46,7 +36,9 @@ def list_archives(vault_name: str) -> List[str]:
                     vault_name}, Job ID: {job_id}")
 
         while True:
-            glacier_client = get_glacier_client()  # Refresh client
+            # Refresh client
+            glacier_client = credential_manager.get_glacier_client()
+
             job_status = glacier_client.describe_job(
                 accountId='-',
                 vaultName=vault_name,

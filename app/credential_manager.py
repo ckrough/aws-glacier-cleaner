@@ -48,6 +48,23 @@ class CredentialManager:
                 raise
         return self.credentials
 
+    def get_glacier_client(self) -> boto3.client:
+        """
+        Creates and returns a Glacier client using current credentials.
+
+        Returns:
+            boto3.client: A Glacier client.
+        """
+        if not self.credentials or self._are_credentials_expired():
+            self._refresh_credentials()
+
+        return boto3.client(
+            'glacier',
+            aws_access_key_id=self.credentials['AccessKeyId'],
+            aws_secret_access_key=self.credentials['SecretAccessKey'],
+            aws_session_token=self.credentials['SessionToken']
+        )
+
     def _refresh_credentials(self) -> None:
         """
         Refreshes the AWS credentials by fetching a new set from AWS STS.

@@ -2,9 +2,19 @@
 import boto3
 import time
 import json
+from app.credential_manager import CredentialManager
+
+# Add relevant imports and use CredentialManager to get credentials
 
 def list_archives(vault_name):
-    glacier_client = boto3.client('glacier')
+    credential_manager = CredentialManager()
+    credentials = credential_manager.get_credentials()
+
+    glacier_client = boto3.client('glacier', 
+                                  aws_access_key_id=credentials['AccessKeyId'],
+                                  aws_secret_access_key=credentials['SecretAccessKey'],
+                                  aws_session_token=credentials['SessionToken'])
+
     # Start an inventory-retrieval job
     job_response = glacier_client.initiate_job(
         accountId='-',

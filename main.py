@@ -28,6 +28,7 @@ def main():
                 print(f"Failed to delete vault {vault_name}.")
         else:
             # If the vault is not empty, delete each archive
+            print(f"Discovered {len(archive_ids)} archives in vault {vault_name}")
             print(f"Deleting archives in vault {vault_name}...")
             for archive_id in archive_ids:
                 delete_archive(vault_name, archive_id)

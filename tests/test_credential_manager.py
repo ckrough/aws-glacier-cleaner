@@ -1,21 +1,28 @@
+# tests/test_credential_manager.py
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from app.credential_manager import CredentialManager
-from datetime import datetime, timedelta
 
 
 class TestCredentialManager(unittest.TestCase):
 
     @patch('app.credential_manager.boto3.client')
-    def test_get_credentials(self, mock_sts_client):
-        fake_creds = {
-            'AccessKeyId': 'AKIA...',
-            'SecretAccessKey': 'SECRET...',
-            'SessionToken': 'TOKEN...',
-            'Expiration': datetime.utcnow() + timedelta(hours=1)
+    @patch('app.credential_manager.logging.getLogger')
+    def test_get_credentials(self, mock_logger, mock_boto_client):
+        # Mock logging
+        mock_logger.return_value = MagicMock()
+
+        # Mock boto3 STS client response
+        mock_sts_client = MagicMock()
+        mock_boto_client.return_value = mock_sts_client
+        mock_sts_client.get_session_token.return_value = {
+            'Credentials': {
+                'AccessKeyId': 'AKIA...',
+                'SecretAccessKey': 'SECRET...',
+                'SessionToken': 'TOKEN...',
+                'Expiration': '2023-01-01T00:00:00Z'
+            }
         }
-        mock_sts_client.return_value.get_session_token.return_value = {
-            'Credentials': fake_creds}
 
         manager = CredentialManager()
         credentials = manager.get_credentials()
@@ -23,6 +30,13 @@ class TestCredentialManager(unittest.TestCase):
         self.assertEqual(credentials['AccessKeyId'], 'AKIA...')
         self.assertEqual(credentials['SecretAccessKey'], 'SECRET...')
         self.assertEqual(credentials['SessionToken'], 'TOKEN...')
+
+        # Test for exception handling in get_credentials
+        mock_sts_client.get_session_token.side_effect = Exception("Error")
+        with self.assertRaises(Exception):
+            manager.get_credentials()
+            mock_logger.error.assert_called_with(
+                "Error refreshing credentials: Error")
 
 
 if __name__ == '__main__':

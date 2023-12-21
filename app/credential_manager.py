@@ -1,6 +1,7 @@
 import boto3
 from datetime import datetime, timedelta
 from typing import Dict, Optional
+import logging
 
 
 class CredentialManager:
@@ -9,7 +10,7 @@ class CredentialManager:
 
     Attributes:
         session_duration (int): The duration for which the credentials are
-        valid (in seconds).
+            valid (in seconds).
         credentials (dict, optional): The current AWS credentials.
         expiration (datetime, optional): The expiration time of the current
             credentials.
@@ -22,8 +23,9 @@ class CredentialManager:
 
         Args:
             session_duration (int): The duration for which the credentials are
-            valid (in seconds).
+                valid (in seconds).
         """
+        self.logger = logging.getLogger(__name__)
         self.session_duration: int = session_duration
         self.credentials: Optional[Dict[str, str]] = None
         self.expiration: Optional[datetime] = None
@@ -39,7 +41,11 @@ class CredentialManager:
             and session token.
         """
         if not self.credentials or self._are_credentials_expired():
-            self._refresh_credentials()
+            try:
+                self._refresh_credentials()
+            except Exception as e:
+                self.logger.error(f"Error refreshing credentials: {e}")
+                raise
         return self.credentials
 
     def _refresh_credentials(self) -> None:
@@ -60,6 +66,6 @@ class CredentialManager:
             False otherwise.
         """
         return (
-            not self.expiration or 
+            not self.expiration or
             self.expiration - datetime.utcnow() < timedelta(minutes=5)
         )

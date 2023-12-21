@@ -3,6 +3,10 @@ from app.glacier_vaults_list import list_glacier_vaults
 from app.list_archives import list_archives
 from app.delete_archives import delete_archive
 from app.delete_vault import delete_vault
+import logging
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def main():

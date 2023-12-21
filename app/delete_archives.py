@@ -2,6 +2,7 @@
 import boto3
 from typing import NoReturn
 from app.credential_manager import CredentialManager
+import logging
 
 
 def delete_archive(vault_name: str, archive_id: str) -> NoReturn:
@@ -12,6 +13,7 @@ def delete_archive(vault_name: str, archive_id: str) -> NoReturn:
         vault_name (str): The name of the AWS Glacier vault.
         archive_id (str): The ID of the archive to be deleted.
     """
+    logger = logging.getLogger(__name__)
     credential_manager = CredentialManager()
 
     def get_glacier_client():
@@ -36,7 +38,7 @@ def delete_archive(vault_name: str, archive_id: str) -> NoReturn:
             vaultName=vault_name,
             archiveId=archive_id
         )
-        print(f"Deleted archive {archive_id} from vault {vault_name}")
+        logger.info(f"Deleted archive {archive_id} from vault {vault_name}")
     except Exception as e:
-        print(f"Failed to delete archive {
-              archive_id} from vault {vault_name}: {e}")
+        logger.error(f"Failed to delete archive {
+                     archive_id} from vault {vault_name}: {e}")

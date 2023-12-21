@@ -2,6 +2,7 @@
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 from typing import List, Union
+import logging
 
 
 def list_glacier_vaults() -> Union[List[str], str]:
@@ -12,12 +13,16 @@ def list_glacier_vaults() -> Union[List[str], str]:
         Union[List[str], str]: A list of vault names if successful,
         or an error message string.
     """
+
+    logger = logging.getLogger(__name__)
+
     try:
         client = boto3.client('glacier')
         response = client.list_vaults(accountId='-')
         vaults = response['VaultList']
         return [vault['VaultName'] for vault in vaults]
     except NoCredentialsError:
-        return "No AWS credentials found"
+        logger.error("No AWS credentials found")
     except ClientError as e:
-        return str(e)
+        logger.error(f"Client error occurred: {e}")
+        return []

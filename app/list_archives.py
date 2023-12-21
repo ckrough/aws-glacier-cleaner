@@ -2,6 +2,7 @@
 import boto3
 import time
 import json
+import logging
 from typing import List
 from app.credential_manager import CredentialManager
 
@@ -20,6 +21,7 @@ def list_archives(vault_name: str) -> List[str]:
     Returns:
         List[str]: A list of archive IDs in the specified vault.
     """
+    logger = logging.getLogger(__name__)
     credential_manager = CredentialManager()
 
     def get_glacier_client():
@@ -33,42 +35,40 @@ def list_archives(vault_name: str) -> List[str]:
         )
 
     glacier_client = get_glacier_client()
-    job_response = glacier_client.initiate_job(
-        accountId='-',
-        vaultName=vault_name,
-        jobParameters={'Type': 'inventory-retrieval'}
-    )
-    job_id = job_response['jobId']
-    print(f"Inventory retrieval job started for vault {vault_name}, "
-          f"Job ID: {job_id}")
-
-    # Polling for job completion
-    while True:
-        glacier_client = get_glacier_client()  # Refresh client
-        job_status = glacier_client.describe_job(
+    try:
+        job_response = glacier_client.initiate_job(
             accountId='-',
             vaultName=vault_name,
-            jobId=job_id
+            jobParameters={'Type': 'inventory-retrieval'}
         )
+        job_id = job_response['jobId']
+        logger.info(f"Inventory retrieval job started for vault {
+                    vault_name}, Job ID: {job_id}")
 
-        if job_status['Completed']:
-            glacier_client = get_glacier_client()  # Refresh client again
-            job_output = glacier_client.get_job_output(
+        while True:
+            glacier_client = get_glacier_client()  # Refresh client
+            job_status = glacier_client.describe_job(
                 accountId='-',
                 vaultName=vault_name,
                 jobId=job_id
             )
-            break
-        time.sleep(900)  # Poll every 15 minutes
 
-    job_output_content = job_output['body'].read()
+            if job_status['Completed']:
+                job_output = glacier_client.get_job_output(
+                    accountId='-',
+                    vaultName=vault_name,
+                    jobId=job_id
+                )
+                job_output_content = job_output['body'].read()
 
-    # Parse the job output to extract archive list
-    try:
-        inventory_data = json.loads(job_output_content)
-        archives = [archive['ArchiveId']
-                    for archive in inventory_data['ArchiveList']]
-        return archives
-    except json.JSONDecodeError:
-        print("Error parsing job output")
+                inventory_data = json.loads(job_output_content)
+                archives = [archive['ArchiveId']
+                            for archive in inventory_data['ArchiveList']]
+                return archives
+
+            time.sleep(900)  # Poll every 15 minutes
+
+    except Exception as e:
+        logger.error(f"An error occurred while listing archives in vault {
+                     vault_name}: {e}")
         return []

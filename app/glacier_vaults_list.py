@@ -2,6 +2,7 @@
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 
+
 def list_glacier_vaults():
     try:
         client = boto3.client('glacier')

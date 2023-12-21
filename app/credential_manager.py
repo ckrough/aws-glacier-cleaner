@@ -1,6 +1,7 @@
 import boto3
 from datetime import datetime, timedelta
 
+
 class CredentialManager:
     """
     Manages short-lived AWS credentials using STS.
@@ -33,7 +34,8 @@ class CredentialManager:
         """
         Refreshes the AWS credentials.
         """
-        response = self.sts_client.get_session_token(DurationSeconds=self.session_duration)
+        response = self.sts_client.get_session_token(
+            DurationSeconds=self.session_duration)
         self.credentials = response['Credentials']
         self.expiration = self.credentials['Expiration']
 

@@ -23,5 +23,6 @@ class TestGlacierVaultsList(unittest.TestCase):
         result = list_glacier_vaults()
         self.assertEqual(result, "No AWS credentials found")
 
+
 if __name__ == '__main__':
     unittest.main()

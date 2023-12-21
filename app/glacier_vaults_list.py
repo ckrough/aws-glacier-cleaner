@@ -9,7 +9,8 @@ def list_glacier_vaults() -> Union[List[str], str]:
     Lists all the vault names in AWS Glacier for the given account.
 
     Returns:
-        Union[List[str], str]: A list of vault names if successful, or an error message string.
+        Union[List[str], str]: A list of vault names if successful,
+        or an error message string.
     """
     try:
         client = boto3.client('glacier')

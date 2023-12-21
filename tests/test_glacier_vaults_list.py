@@ -10,7 +10,10 @@ class TestGlacierVaultsList(unittest.TestCase):
     @patch('app.glacier_vaults_list.boto3.client')
     def test_list_vaults(self, mock_client):
         mock_client.return_value.list_vaults.return_value = {
-            'VaultList': [{'VaultName': 'TestVault1'}, {'VaultName': 'TestVault2'}]
+            'VaultList': [
+                {'VaultName': 'TestVault1'},
+                {'VaultName': 'TestVault2'}
+            ]
         }
 
         result = list_glacier_vaults()

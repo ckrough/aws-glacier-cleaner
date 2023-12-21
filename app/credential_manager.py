@@ -8,9 +8,11 @@ class CredentialManager:
     Manages short-lived AWS credentials using STS (AWS Security Token Service).
 
     Attributes:
-        session_duration (int): The duration for which the credentials are valid (in seconds).
+        session_duration (int): The duration for which the credentials are
+        valid (in seconds).
         credentials (dict, optional): The current AWS credentials.
-        expiration (datetime, optional): The expiration time of the current credentials.
+        expiration (datetime, optional): The expiration time of the current
+            credentials.
         sts_client (boto3.client): The client for AWS STS.
     """
 
@@ -19,7 +21,8 @@ class CredentialManager:
         Initialize the Credential Manager with a specified session duration.
 
         Args:
-            session_duration (int): The duration for which the credentials are valid (in seconds).
+            session_duration (int): The duration for which the credentials are
+            valid (in seconds).
         """
         self.session_duration: int = session_duration
         self.credentials: Optional[Dict[str, str]] = None
@@ -28,10 +31,12 @@ class CredentialManager:
 
     def get_credentials(self) -> Dict[str, str]:
         """
-        Retrieves fresh credentials if the current ones are expired or about to expire.
+        Retrieves fresh credentials if the current ones are expired or about
+        to expire.
 
         Returns:
-            Dict[str, str]: AWS credentials including access key, secret key, and session token.
+            Dict[str, str]: AWS credentials including access key, secret key,
+            and session token.
         """
         if not self.credentials or self._are_credentials_expired():
             self._refresh_credentials()
@@ -51,6 +56,10 @@ class CredentialManager:
         Checks if the current credentials are expired or about to expire.
 
         Returns:
-            bool: True if credentials are expired or about to expire, False otherwise.
+            bool: True if credentials are expired or about to expire,
+            False otherwise.
         """
-        return not self.expiration or self.expiration - datetime.utcnow() < timedelta(minutes=5)
+        return (
+            not self.expiration or 
+            self.expiration - datetime.utcnow() < timedelta(minutes=5)
+        )

@@ -4,6 +4,7 @@ from app.list_archives import list_archives
 from app.delete_archives import delete_archive
 from app.delete_vault import delete_vault
 
+
 def main():
     print("Retrieving list of AWS Glacier Vaults...")
     vault_names = list_glacier_vaults()
@@ -28,16 +29,20 @@ def main():
                 print(f"Failed to delete vault {vault_name}.")
         else:
             # If the vault is not empty, delete each archive
-            print(f"Discovered {len(archive_ids)} archives in vault {vault_name}")
-            print(f"Deleting archives in vault {vault_name}...")
+            print("Discovered", len(archive_ids), "archives in vault",
+                  vault_name)
+            print("Deleting archives in vault", vault_name + "...")
             for archive_id in archive_ids:
                 delete_archive(vault_name, archive_id)
 
             # After deleting all archives, delete the vault
             if delete_vault(vault_name):
-                print(f"Vault {vault_name} deleted successfully after archive deletion.")
+                print("Vault", vault_name,
+                      "deleted successfully after archive deletion.")
             else:
-                print(f"Failed to delete vault {vault_name} after archive deletion.")
+                print("Failed to delete vault", vault_name,
+                      "after archive deletion.")
+
 
 if __name__ == "__main__":
     main()

@@ -9,7 +9,6 @@ from app.credential_manager import CredentialManager
 def list_archives(vault_name):
     credential_manager = CredentialManager()
     credentials = credential_manager.get_credentials()
-
     glacier_client = boto3.client('glacier', 
                                   aws_access_key_id=credentials['AccessKeyId'],
                                   aws_secret_access_key=credentials['SecretAccessKey'],

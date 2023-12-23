@@ -1,8 +1,8 @@
 # tests/test_list_vaults.py
 import unittest
 from unittest.mock import patch, MagicMock
+from botocore.exceptions import NoCredentialsError
 from app.list_vaults import list_vaults
-from botocore.exceptions import NoCredentialsError, ClientError
 
 
 class TestListVaults(unittest.TestCase):

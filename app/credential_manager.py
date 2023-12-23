@@ -1,5 +1,6 @@
 import boto3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+import dateutil.parser
 from typing import Dict, Optional
 import logging
 
@@ -9,21 +10,17 @@ class CredentialManager:
     Manages short-lived AWS credentials using STS (AWS Security Token Service).
 
     Attributes:
-        session_duration (int): The duration for which the credentials are
-            valid (in seconds).
-        credentials (dict, optional): The current AWS credentials.
-        expiration (datetime, optional): The expiration time of the current
-            credentials.
-        sts_client (boto3.client): The client for AWS STS.
+        session_duration (int): Duration for which the credentials are valid.
+        credentials (dict, optional): Current AWS credentials.
+        expiration (datetime, optional): Expiration time of current credentials.
+        sts_client (boto3.client): Client for AWS STS.
     """
 
     def __init__(self, session_duration: int = 3600) -> None:
         """
-        Initialize the Credential Manager with a specified session duration.
-
+        Initialize the Credential Manager with a session duration.
         Args:
-            session_duration (int): The duration for which the credentials are
-                valid (in seconds).
+            session_duration (int): Duration for which the credentials are valid.
         """
         self.logger = logging.getLogger(__name__)
         self.session_duration: int = session_duration
@@ -33,12 +30,9 @@ class CredentialManager:
 
     def get_credentials(self) -> Dict[str, str]:
         """
-        Retrieves fresh credentials if the current ones are expired or about
-        to expire.
-
+        Retrieves fresh credentials if the current ones are expired or about to expire.
         Returns:
-            Dict[str, str]: AWS credentials including access key, secret key,
-            and session token.
+            Dict[str, str]: AWS credentials (access key, secret key, session token).
         """
         if not self.credentials or self._are_credentials_expired():
             try:
@@ -50,7 +44,7 @@ class CredentialManager:
 
     def get_glacier_client(self) -> boto3.client:
         """
-        Creates and returns a Glacier client using current credentials.
+        Creates and returns a Glacier client using the current credentials.
 
         Returns:
             boto3.client: A Glacier client.
@@ -69,20 +63,24 @@ class CredentialManager:
         """
         Refreshes the AWS credentials by fetching a new set from AWS STS.
         """
-        response = self.sts_client.get_session_token(
-            DurationSeconds=self.session_duration)
+        response = self.sts_client.get_session_token(DurationSeconds=self.session_duration)
         self.credentials = response['Credentials']
-        self.expiration = self.credentials['Expiration']
+
+        expiration = self.credentials['Expiration']
+        if isinstance(expiration, str):
+            # Parse the expiration string into a timezone-aware datetime object
+            self.expiration = dateutil.parser.parse(expiration)
+        elif expiration.tzinfo is None:
+            # Make the datetime object timezone-aware if it's naive
+            self.expiration = expiration.replace(tzinfo=timezone.utc)
+        else:
+            self.expiration = expiration
 
     def _are_credentials_expired(self) -> bool:
         """
         Checks if the current credentials are expired or about to expire.
-
         Returns:
-            bool: True if credentials are expired or about to expire,
-            False otherwise.
+            bool: True if credentials are expired or about to expire, False otherwise.
         """
-        return (
-            not self.expiration or
-            self.expiration - datetime.utcnow() < timedelta(minutes=5)
-        )
+        now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+        return not self.expiration or self.expiration - now_utc < timedelta(minutes=5)

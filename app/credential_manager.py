@@ -83,4 +83,4 @@ class CredentialManager:
             bool: True if credentials are expired or about to expire, False otherwise.
         """
         now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
-        return not self.expiration or self.expiration - now_utc < timedelta(minutes=5)
+        return not self.expiration or self.expiration - now_utc < timedelta(minutes=15)

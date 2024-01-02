@@ -1,8 +1,9 @@
 import boto3
+import time
 from datetime import datetime, timedelta, timezone
-import dateutil.parser
-from typing import Dict, Optional
+import botocore
 import logging
+from typing import Dict, Optional
 
 
 class CredentialManager:
@@ -11,8 +12,8 @@ class CredentialManager:
 
     Attributes:
         session_duration (int): Duration for which the credentials are valid.
-        credentials (dict, optional): Current AWS credentials.
-        expiration (datetime, optional): Expiration time of current credentials.
+        credentials (Optional[Dict[str, str]]): Current AWS credentials.
+        expiration (Optional[datetime]): Expiration time of current credentials.
         sts_client (boto3.client): Client for AWS STS.
     """
 
@@ -34,24 +35,17 @@ class CredentialManager:
         Returns:
             Dict[str, str]: AWS credentials (access key, secret key, session token).
         """
-        if not self.credentials or self._are_credentials_expired():
-            try:
-                self._refresh_credentials()
-            except Exception as e:
-                self.logger.error(f"Error refreshing credentials: {e}")
-                raise
+        if self._need_refresh():
+            self._refresh_credentials()
         return self.credentials
 
     def get_glacier_client(self) -> boto3.client:
         """
         Creates and returns a Glacier client using the current credentials.
-
         Returns:
             boto3.client: A Glacier client.
         """
-        if not self.credentials or self._are_credentials_expired():
-            self._refresh_credentials()
-
+        self.get_credentials()  # Ensure credentials are up to date
         return boto3.client(
             'glacier',
             aws_access_key_id=self.credentials['AccessKeyId'],
@@ -59,28 +53,33 @@ class CredentialManager:
             aws_session_token=self.credentials['SessionToken']
         )
 
-    def _refresh_credentials(self) -> None:
+    def _need_refresh(self) -> bool:
         """
-        Refreshes the AWS credentials by fetching a new set from AWS STS.
-        """
-        response = self.sts_client.get_session_token(DurationSeconds=self.session_duration)
-        self.credentials = response['Credentials']
-
-        expiration = self.credentials['Expiration']
-        if isinstance(expiration, str):
-            # Parse the expiration string into a timezone-aware datetime object
-            self.expiration = dateutil.parser.parse(expiration)
-        elif expiration.tzinfo is None:
-            # Make the datetime object timezone-aware if it's naive
-            self.expiration = expiration.replace(tzinfo=timezone.utc)
-        else:
-            self.expiration = expiration
-
-    def _are_credentials_expired(self) -> bool:
-        """
-        Checks if the current credentials are expired or about to expire.
+        Determines if the AWS credentials need to be refreshed.
         Returns:
-            bool: True if credentials are expired or about to expire, False otherwise.
+            bool: True if credentials need refresh, False otherwise.
         """
-        now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
-        return not self.expiration or self.expiration - now_utc < timedelta(minutes=15)
+        now_utc = datetime.now(timezone.utc)
+        return (not self.credentials or not self.expiration or
+                now_utc >= self.expiration - timedelta(minutes=5))
+
+    def _refresh_credentials(self, retries: int = 3, delay: int = 1) -> None:
+        """
+        Refreshes the AWS credentials with retry and exponential backoff strategy.
+        Args:
+            retries (int): Number of retry attempts.
+            delay (int): Initial delay between retries in seconds.
+        """
+        for attempt in range(retries):
+            try:
+                response = self.sts_client.get_session_token(DurationSeconds=self.session_duration)
+                self.credentials = response['Credentials']
+                self.expiration = self.credentials['Expiration']
+                break
+            except botocore.exceptions.ClientError as error:
+                if attempt < retries - 1:
+                    time.sleep(delay)
+                    delay *= 2  # Exponential backoff
+                else:
+                    self.logger.error(f"Failed to refresh credentials: {error}")
+                    raise error

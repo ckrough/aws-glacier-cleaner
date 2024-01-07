@@ -1,5 +1,5 @@
 # app/delete_vault.py
-import boto3
+
 from typing import NoReturn
 from app.credential_manager import CredentialManager
 import logging
